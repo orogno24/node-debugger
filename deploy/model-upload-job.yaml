@@ -1,0 +1,25 @@
+# 모델 파일을 PVC에 복사하기 위한 임시 파드
+# 사용법:
+#   kubectl apply -f deploy/model-upload-job.yaml
+#   kubectl -n chatops wait --for=condition=Ready pod/model-uploader --timeout=60s
+#   kubectl -n chatops cp ./Qwen3-1.7B-Q4_K_M.gguf \
+#     model-uploader:/app/models/qwen3-1.7b-instruct-q4_k_m.gguf
+#   kubectl -n chatops delete pod model-uploader
+apiVersion: v1
+kind: Pod
+metadata:
+  name: model-uploader
+  namespace: chatops
+spec:
+  restartPolicy: Never
+  containers:
+    - name: uploader
+      image: 178.128.86.110:30013/busybox:latest
+      command: ["sh", "-c", "echo 'Ready. Waiting for kubectl cp...' && sleep 3600"]
+      volumeMounts:
+        - name: model-volume
+          mountPath: /app/models
+  volumes:
+    - name: model-volume
+      persistentVolumeClaim:
+        claimName: chatops-model-pvc

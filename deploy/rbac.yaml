@@ -1,0 +1,34 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: chatops-console-reader
+  labels:
+    app.kubernetes.io/name: chatops-console
+rules:
+  # Pod 상태 조회
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list"]
+  # 이벤트 조회
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list"]
+  # Helm release 정보 (Secret에 저장됨)
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: chatops-console-reader
+  labels:
+    app.kubernetes.io/name: chatops-console
+subjects:
+  - kind: ServiceAccount
+    name: chatops-console
+    namespace: chatops
+roleRef:
+  kind: ClusterRole
+  name: chatops-console-reader
+  apiGroup: rbac.authorization.k8s.io

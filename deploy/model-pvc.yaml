@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: chatops-model-pvc
+  namespace: chatops
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: do-block-storage   # DigitalOcean 기본 StorageClass
+  resources:
+    requests:
+      storage: 3Gi
