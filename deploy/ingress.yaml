@@ -4,9 +4,14 @@ metadata:
   name: chatops-ingress
   namespace: chatops
   annotations:
+    # kubernetes/ingress-nginx 형식
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    # F5 NGINX Ingress Controller 형식 (f5-nginx 클래스용)
+    nginx.org/proxy-read-timeout: "300s"
+    nginx.org/proxy-send-timeout: "300s"
+    nginx.org/client-max-body-size: "10m"
 spec:
   ingressClassName: f5-nginx
   rules:

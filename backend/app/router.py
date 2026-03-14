@@ -126,18 +126,7 @@ async def _handle_pod_analyze(req: ChatRequest, intent: IntentType) -> ChatRespo
     prompt = pod_analysis.build_pod_analysis_prompt(pod_data, classification)
     analysis = await asyncio.to_thread(llm.generate, prompt)
 
-    evidence_json = json.dumps(
-        {"issue_type": classification.issue_type.value,
-         "confidence": classification.confidence.value,
-         "affected_container": classification.affected_container,
-         **classification.evidence},
-        indent=2, ensure_ascii=False,
-    )
-
-    contents = [
-        ContentBlock(type=ContentType.TEXT, body=analysis),
-        ContentBlock(type=ContentType.CODE, body=evidence_json, language="json"),
-    ]
+    contents = [ContentBlock(type=ContentType.TEXT, body=analysis)]
     if classification.relevant_logs:
         contents.append(ContentBlock(type=ContentType.CODE, body=classification.relevant_logs, language="log"))
 

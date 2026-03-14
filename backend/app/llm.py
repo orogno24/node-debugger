@@ -65,7 +65,7 @@ def generate(prompt: str, system: str | None = None) -> str:
         content = response["choices"][0]["message"]["content"]
         if not content or not content.strip():
             raise LLMError("LLM이 빈 응답을 반환했습니다.")
-        return content.strip()
+        return _strip_think(content).strip()
     except FuturesTimeout:
         raise LLMError(f"LLM 추론 타임아웃 ({LLM_TIMEOUT}초 초과)")
     except LLMError:
@@ -84,7 +84,7 @@ def generate_safe(prompt: str, system: str | None = None, fallback: str = "") ->
 
 
 def generate_stream(prompt: str, system: str | None = None) -> Iterator[str]:
-    """스트리밍 추론. 토큰 간 간격이 LLM_TIMEOUT을 초과하면 중단한다."""
+    """스트리밍 추론. <think> 블록을 건너뛰고 토큰 간 타임아웃을 적용한다."""
     _ensure_loaded()
     import time
 
@@ -93,6 +93,8 @@ def generate_stream(prompt: str, system: str | None = None) -> Iterator[str]:
         {"role": "user", "content": prompt},
     ]
     last_token_time = time.monotonic()
+    in_think = False
+    think_buf = ""
     try:
         for chunk in _llm.create_chat_completion(
             messages=messages,
@@ -105,9 +107,27 @@ def generate_stream(prompt: str, system: str | None = None) -> Iterator[str]:
                 raise LLMError(f"스트리밍 타임아웃 ({LLM_TIMEOUT}초 간 토큰 없음)")
             delta = chunk["choices"][0].get("delta", {})
             token = delta.get("content", "")
-            if token:
-                last_token_time = now
-                yield token
+            if not token:
+                continue
+
+            last_token_time = now
+            think_buf += token
+
+            # <think> 블록 감지 및 스킵
+            if not in_think:
+                if "<think>" in think_buf:
+                    in_think = True
+                    think_buf = think_buf[think_buf.index("<think>") + len("<think>"):]
+                else:
+                    yield think_buf
+                    think_buf = ""
+            if in_think:
+                if "</think>" in think_buf:
+                    in_think = False
+                    remainder = think_buf[think_buf.index("</think>") + len("</think>"):]
+                    think_buf = ""
+                    if remainder:
+                        yield remainder
     except LLMError:
         raise
     except Exception as e:
@@ -138,6 +158,12 @@ def _try_parse_json(text: str) -> dict | None:
         return json.loads(text[start:end])
     except (ValueError, json.JSONDecodeError):
         return None
+
+
+def _strip_think(text: str) -> str:
+    """Qwen3의 <think>...</think> 내부 추론 블록을 제거한다."""
+    import re
+    return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
 
 
 def _ensure_loaded():

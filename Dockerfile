@@ -20,15 +20,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /build
 
+# DO s-4vcpu-8gb = Intel Xeon (KVM) → AVX/AVX2/FMA/F16C 지원, AVX512 미지원
+# AVX/AVX2를 활성화해야 추론 속도가 나옴 (비활성화 시 15~30배 느림)
 ENV FORCE_CMAKE=1
 ENV CMAKE_ARGS="-DGGML_NATIVE=OFF \
--DGGML_SSE42=OFF \
--DGGML_AVX=OFF \
--DGGML_AVX2=OFF \
--DGGML_AVX_VNNI=OFF \
--DGGML_BMI2=OFF \
--DGGML_FMA=OFF \
--DGGML_F16C=OFF \
+-DGGML_AVX=ON \
+-DGGML_AVX2=ON \
+-DGGML_FMA=ON \
+-DGGML_F16C=ON \
 -DGGML_AVX512=OFF \
 -DGGML_AVX512_VBMI=OFF \
 -DGGML_AVX512_VNNI=OFF \
